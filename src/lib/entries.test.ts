@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { assertEntry, createEntry, FIELD_LIMITS, isValidTimestamp, matchesSearch, updateEntry, validateDraft, type EntryDraft } from './entries'
+import { assertEntry, createEntry, FIELD_LIMITS, findDuplicateEntries, isValidTimestamp, matchesSearch, updateEntry, validateDraft, type EntryDraft } from './entries'
 
 const draft: EntryDraft = {
   type: 'word', english: 'Improve', chinese: '改善、提升', malay: 'Meningkatkan', note: '',
@@ -59,4 +59,39 @@ describe('timestamp validation', () => {
   it.each(['2026-02-29T00:00:00Z', '2026-04-31T00:00:00Z', '2026-10-26', '2026-10-26T24:00:00Z', '2026-10-26T10:00:60Z', '2026-10-26T10:00:00+99:00', 'not a date', null])(
     'rejects an invalid timestamp: %s', (timestamp) => expect(isValidTimestamp(timestamp)).toBe(false),
   )
+})
+
+describe('duplicate content detection', () => {
+  it('matches normalized casing, surrounding whitespace, and all three language fields', () => {
+    const original = createEntry(draft)
+    const equivalent = { ...draft, english: ' ＩＭＰＲＯＶＥ ', chinese: '\n改善、提升　', malay: ' MENINGKATKAN\t', note: 'Different notes' }
+    expect(findDuplicateEntries([{ ...original, favorite: true }], equivalent)).toHaveLength(1)
+    expect(original.english).toBe('Improve')
+  })
+
+  it('treats canonically equivalent Unicode as the same content', () => {
+    const original = createEntry({ ...draft, english: 'café' })
+    expect(findDuplicateEntries([original], { ...draft, english: 'CAFE\u0301' })).toEqual([original])
+  })
+
+  it('requires the same type and all language values, preserving meaningful internal spacing', () => {
+    const original = createEntry({ ...draft, english: 'take care' })
+    expect(findDuplicateEntries([original], { ...draft, english: 'take care', type: 'chunk' })).toEqual([])
+    expect(findDuplicateEntries([original], { ...draft, english: 'take care', malay: '' })).toEqual([])
+    expect(findDuplicateEntries([original], { ...draft, english: 'take  care' })).toEqual([])
+  })
+
+  it('supports one-language entries but never flags an entirely blank draft', () => {
+    const oneLanguage = { ...draft, english: '', chinese: '改善', malay: '' }
+    const original = createEntry(oneLanguage)
+    expect(findDuplicateEntries([original], { ...oneLanguage, chinese: ' 改善 ' })).toEqual([original])
+    expect(findDuplicateEntries([original], { ...draft, english: ' ', chinese: '\n', malay: '　' })).toEqual([])
+  })
+
+  it('excludes the edited record while reporting other exact duplicates', () => {
+    const original = createEntry(draft)
+    const other = createEntry(draft)
+    expect(findDuplicateEntries([original, other], draft, original.id)).toEqual([other])
+    expect(findDuplicateEntries([original], draft, original.id)).toEqual([])
+  })
 })

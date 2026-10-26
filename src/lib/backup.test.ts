@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createBackup, MAX_BACKUP_BYTES, MAX_BACKUP_ENTRIES, parseBackup, previewImport } from './backup'
+import { createBackup, MAX_BACKUP_BYTES, MAX_BACKUP_ENTRIES, parseBackup, previewImport, previewReplacement } from './backup'
 import { FIELD_LIMITS, type Entry } from './entries'
 
 const entry: Entry = {
@@ -83,5 +83,20 @@ describe('import preview', () => {
   it('does not count unmentioned existing records as deletions or updates', () => {
     expect(previewImport([entry], [])).toEqual({ added: 0, updated: 0, unchanged: 0 })
     expect(previewImport([], [entry])).toEqual({ added: 1, updated: 0, unchanged: 0 })
+  })
+})
+
+describe('replacement preview', () => {
+  it('reports changes, removals, and the final incoming total', () => {
+    const changed = { ...entry, id: 'changed' }
+    const removed = { ...entry, id: 'removed' }
+    const incoming = [entry, { ...changed, favorite: false }, { ...entry, id: 'added' }]
+    expect(previewReplacement([entry, changed, removed], incoming)).toEqual({ added: 1, updated: 1, unchanged: 1, removed: 1, total: 3 })
+  })
+
+  it('shows that an empty replacement removes every current entry', () => {
+    expect(previewReplacement([entry], [])).toEqual({ added: 0, updated: 0, unchanged: 0, removed: 1, total: 0 })
+    expect(previewReplacement([], [entry])).toEqual({ added: 1, updated: 0, unchanged: 0, removed: 0, total: 1 })
+    expect(previewReplacement([entry], [entry])).toEqual({ added: 0, updated: 0, unchanged: 1, removed: 0, total: 1 })
   })
 })

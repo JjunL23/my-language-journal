@@ -173,3 +173,98 @@ describe('IndexedDB journal storage', () => {
     expect(await storage.listEntries()).toHaveLength(nearLimit.length)
   })
 })
+
+describe('atomic journal replacement', () => {
+  it('replaces all records exactly and removes IDs absent from the backup', async () => {
+    const removed = { ...entry, id: 'removed' }
+    await storage.mergeEntries([entry, removed])
+    const snapshot = await storage.listEntries()
+    const incoming = [{ ...entry, favorite: true, note: 'Restored note' }, { ...entry, id: 'new', type: 'chunk' as const }]
+    await storage.replaceEntries(incoming, snapshot)
+    const restored = await storage.listEntries()
+    expect(restored).toHaveLength(2)
+    expect(restored).toEqual(expect.arrayContaining(incoming))
+    expect(restored.some((record) => record.id === removed.id)).toBe(false)
+  })
+
+  it('can intentionally replace a journal with a validated empty backup', async () => {
+    await storage.saveEntry(entry)
+    await storage.replaceEntries([], [entry])
+    expect(await storage.listEntries()).toEqual([])
+  })
+
+  it('requires the reviewed existing snapshot', async () => {
+    await storage.saveEntry(entry)
+    await expect(storage.replaceEntries([], undefined as unknown as Entry[])).rejects.toThrow(/preview/)
+    expect(await storage.listEntries()).toEqual([entry])
+  })
+
+  it('rejects invalid and duplicate incoming entries before clearing', async () => {
+    await storage.saveEntry(entry)
+    const clear = vi.spyOn(FakeIDBObjectStore.prototype, 'clear')
+    await expect(storage.replaceEntries([{ ...entry, english: '', chinese: '', malay: '' }], [entry])).rejects.toThrow(/at least one/)
+    await expect(storage.replaceEntries([entry, entry], [entry])).rejects.toThrow(/duplicate/)
+    expect(clear).not.toHaveBeenCalled()
+    expect(await storage.listEntries()).toEqual([entry])
+  })
+
+  it('checks replacement capacity before clearing the previous journal', async () => {
+    await storage.saveEntry(entry)
+    const clear = vi.spyOn(FakeIDBObjectStore.prototype, 'clear')
+    const incoming = entriesNearCapacity()
+    incoming.push({ ...incoming[0], id: 'over-capacity' })
+    await expect(storage.replaceEntries(incoming, [entry])).rejects.toBeInstanceOf(storage.JournalCapacityError)
+    expect(clear).not.toHaveBeenCalled()
+    expect(await storage.listEntries()).toEqual([entry])
+  })
+
+  it('checks the replacement size alone, rather than adding it to old records', async () => {
+    const nearLimit = entriesNearCapacity()
+    await storage.mergeEntries(nearLimit)
+    const incoming = nearLimit.map((record) => ({ ...record, id: `other-${record.id}` }))
+    // A large existing journal can always be replaced with a smaller valid one.
+    incoming.pop()
+    await storage.replaceEntries(incoming, nearLimit)
+    expect(await storage.listEntries()).toHaveLength(incoming.length)
+    expect((await storage.listEntries()).every((record) => record.id.startsWith('other-'))).toBe(true)
+  })
+
+  it('rejects changes since preview before clearing, including new entries', async () => {
+    await storage.saveEntry(entry)
+    const snapshot = await storage.listEntries()
+    const later = { ...entry, id: 'added-in-another-tab' }
+    await storage.saveEntry(later)
+    const clear = vi.spyOn(FakeIDBObjectStore.prototype, 'clear')
+    await expect(storage.replaceEntries([], snapshot)).rejects.toBeInstanceOf(storage.ImportConflictError)
+    expect(clear).not.toHaveBeenCalled()
+    expect(await storage.listEntries()).toEqual(expect.arrayContaining([entry, later]))
+  })
+
+  it('rolls back clear and earlier puts when a later write throws', async () => {
+    await storage.saveEntry(entry)
+    const nativePut = FakeIDBObjectStore.prototype.put
+    const clear = vi.spyOn(FakeIDBObjectStore.prototype, 'clear')
+    let writes = 0
+    vi.spyOn(FakeIDBObjectStore.prototype, 'put').mockImplementation(function (this: IDBObjectStore, value, key) {
+      writes += 1
+      if (writes === 2) throw new DOMException('Storage full', 'QuotaExceededError')
+      return nativePut.call(this, value, key)
+    })
+    await expect(storage.replaceEntries([{ ...entry, id: 'replacement-one' }, { ...entry, id: 'replacement-two' }], [entry])).rejects.toThrow(/storage is full/)
+    expect(clear).toHaveBeenCalledOnce()
+    expect(await storage.listEntries()).toEqual([entry])
+  })
+
+  it('also rolls back clear and puts after an asynchronous IndexedDB request failure', async () => {
+    await storage.saveEntry(entry)
+    const nativePut = FakeIDBObjectStore.prototype.put
+    let writes = 0
+    vi.spyOn(FakeIDBObjectStore.prototype, 'put').mockImplementation(function (this: IDBObjectStore, value, key) {
+      writes += 1
+      if (writes === 2) return this.add({ ...value, id: 'replacement-one' })
+      return nativePut.call(this, value, key)
+    })
+    await expect(storage.replaceEntries([{ ...entry, id: 'replacement-one' }, { ...entry, id: 'replacement-two' }], [entry])).rejects.toThrow(/journal storage/)
+    expect(await storage.listEntries()).toEqual([entry])
+  })
+})

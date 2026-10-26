@@ -1,8 +1,8 @@
 import { assertEntry, entriesEqual, type Entry } from './entries'
 import { BackupCapacityError, createBackup } from './backup'
+import { DATABASE_VERSION, runMigrations } from './migrations'
 
 const DATABASE_NAME = 'my-language-journal'
-const DATABASE_VERSION = 1
 const STORE_NAME = 'entries'
 let databasePromise: Promise<IDBDatabase> | undefined
 
@@ -53,13 +53,22 @@ function openDatabase(): Promise<IDBDatabase> {
       settled = true
       reject(error)
     }
-    request.onupgradeneeded = () => {
-      const database = request.result
-      if (!database.objectStoreNames.contains(STORE_NAME)) {
-        database.createObjectStore(STORE_NAME, { keyPath: 'id' })
+    let migrationFailure: Error | undefined
+    request.onupgradeneeded = (event) => {
+      const transaction = request.transaction
+      if (settled) {
+        transaction?.abort()
+        return
+      }
+      try {
+        if (!transaction) throw new Error('The database upgrade transaction is unavailable.')
+        runMigrations(request.result, transaction, event.oldVersion, event.newVersion ?? DATABASE_VERSION)
+      } catch {
+        migrationFailure = new Error('The journal storage update could not finish. Existing records were kept. Close other copies of the app and try again.')
+        try { transaction?.abort() } catch { /* The migration may have already aborted it. */ }
       }
     }
-    request.onerror = () => fail(storageError(request.error))
+    request.onerror = () => fail(migrationFailure ?? storageError(request.error))
     request.onblocked = () => fail(new Error('Close other open copies of My Language Journal, then try again to finish opening local storage.'))
     request.onsuccess = () => {
       const database = request.result
@@ -114,6 +123,7 @@ interface WriteOptions {
   deleteId?: string
   expectedExisting?: Entry[]
   expectedEntry?: Entry | null
+  replace?: boolean
 }
 
 async function writeEntries(entries: Entry[], options: WriteOptions = {}): Promise<void> {
@@ -178,7 +188,7 @@ async function writeEntries(entries: Entry[], options: WriteOptions = {}): Promi
             if (!matches) throw new ImportConflictError()
           }
 
-          const candidate = new Map(current.map((entry) => [entry.id, entry]))
+          const candidate = new Map((options.replace ? [] : current).map((entry) => [entry.id, entry]))
           if (expectedEntry !== undefined) {
             const previous = candidate.get(incoming[0].id)
             const matches = expectedEntry === null ? previous === undefined : previous !== undefined && entriesEqual(previous, expectedEntry)
@@ -186,6 +196,9 @@ async function writeEntries(entries: Entry[], options: WriteOptions = {}): Promi
           }
           for (const entry of incoming) candidate.set(entry.id, entry)
           createBackup([...candidate.values()])
+          // Validation, capacity, and the reviewed snapshot are checked before
+          // clear. Clear and every put then commit or roll back together.
+          if (options.replace) store.clear()
           for (const entry of incoming) store.put(entry)
         } catch (error) {
           failure = error instanceof BackupCapacityError ? new JournalCapacityError()
@@ -212,4 +225,11 @@ export function deleteEntry(id: string, expected?: Entry): Promise<void> {
 
 export function mergeEntries(entries: Entry[], expectedExisting?: Entry[]): Promise<void> {
   return writeEntries(entries, { expectedExisting })
+}
+
+export function replaceEntries(entries: Entry[], expectedExisting: Entry[]): Promise<void> {
+  if (!Array.isArray(expectedExisting)) {
+    return Promise.reject(new Error('Review the replacement preview before replacing your journal.'))
+  }
+  return writeEntries(entries, { expectedExisting, replace: true })
 }

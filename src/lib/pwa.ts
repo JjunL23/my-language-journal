@@ -56,8 +56,22 @@ export function setupPwa(callbacks: PwaCallbacks): () => void {
       onOfflineReady: markOfflineReady,
       onNeedRefresh() {
         offerUpdate(async () => {
+          const registration = await navigator.serviceWorker.getRegistration()
+          // Another tab can activate this update before this tab accepts it.
+          // Workbox may classify that controller change as external and omit
+          // onNeedReload. With no worker left waiting, refresh this tab only
+          // after its own user explicitly accepts the update.
+          if (!registration?.waiting) {
+            window.location.reload()
+            return
+          }
           reloadRequested = true
-          await updateSW(true)
+          try {
+            await updateSW(true)
+          } catch (error) {
+            reloadRequested = false
+            throw error
+          }
         })
       },
       onNeedReload() {

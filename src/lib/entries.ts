@@ -89,6 +89,16 @@ export function matchesSearch(entry: Entry, query: string): boolean {
   )
 }
 
+/** Exact content duplicates only; partial translations and record types differ. */
+export function findDuplicateEntries(entries: Entry[], draft: EntryDraft, excludeId?: string): Entry[] {
+  const normalize = (value: string) => value.normalize('NFKC').trim().toLocaleLowerCase('en-US')
+  const normalized = languageFields.map((field) => normalize(draft[field]))
+  if (!normalized.some(Boolean)) return []
+  return entries.filter((entry) =>
+    entry.id !== excludeId && entry.type === draft.type && languageFields.every((field, index) => normalize(entry[field]) === normalized[index]),
+  )
+}
+
 /** A date-time with seconds and an explicit timezone, with calendar validation. */
 export function isValidTimestamp(value: unknown): value is string {
   if (typeof value !== 'string' || value.length > 40) return false

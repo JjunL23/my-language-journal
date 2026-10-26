@@ -23,6 +23,11 @@ export interface ImportPreview {
   unchanged: number
 }
 
+export interface ReplacementPreview extends ImportPreview {
+  removed: number
+  total: number
+}
+
 function validatedEntries(value: unknown): Entry[] {
   if (!Array.isArray(value)) throw new Error('The backup must contain an entries array.')
   if (value.length > MAX_BACKUP_ENTRIES) throw new BackupCapacityError('This backup has too many entries. The limit is 50,000.')
@@ -97,4 +102,13 @@ export function previewImport(current: Entry[], incoming: Entry[]): ImportPrevie
     else preview.updated += 1
   }
   return preview
+}
+
+export function previewReplacement(current: Entry[], incoming: Entry[]): ReplacementPreview {
+  const incomingIds = new Set(incoming.map((entry) => entry.id))
+  return {
+    ...previewImport(current, incoming),
+    removed: current.filter((entry) => !incomingIds.has(entry.id)).length,
+    total: incoming.length,
+  }
 }
