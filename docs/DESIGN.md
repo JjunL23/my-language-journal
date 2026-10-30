@@ -45,3 +45,7 @@ The Figma board contains 278 editable descendants: 103 frames, 133 text layers, 
 The five mobile screens share the same 390 × 844 frame. The New / Edit pattern uses a single form; edit mode substitutes the title and preserves the existing entry ID. This is an editable visual specification, not a click-through prototype or evidence of real-device PWA testing. Import preview, deletion confirmation, empty/loading/error states, and live keyboard behavior remain application acceptance checks; they are not represented by additional Figma screens.
 
 The implemented app increases secondary-text contrast and mobile type sizes after accessibility testing. It uses a full-screen editor on phones, native confirmation dialogs, and local system fonts for Chinese. This file is a design handoff; the running app remains the source for tested behavior.
+
+## Typography update — 2026-10-30
+
+At the owner’s request, the running app now uses one native system font stack for all headings, body text, controls, entry content, and decorative text: `-apple-system, BlinkMacSystemFont, system-ui, "PingFang SC", "Segoe UI", sans-serif`. The DM Sans and Lora packages and imports have been removed. Apple devices use their built-in system fonts; other devices use their own system fonts. No downloadable font assets are required. The original Figma board above remains a historical design reference; its typography has not been updated. Layout, colors, and journal behavior are unchanged.
