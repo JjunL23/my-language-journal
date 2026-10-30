@@ -2,7 +2,7 @@
 
 个人三语词汇记录 PWA · English / Bahasa Melayu / 中文 · MVP V1.0
 
-正式应用：[My Language Journal](https://qingye1234.github.io/my-language-journal/) · 源码：[GitHub](https://github.com/qingye1234/my-language-journal)
+正式应用：[My Language Journal](https://jjunl23.github.io/my-language-journal/) · 源码：[GitHub](https://github.com/JjunL23/my-language-journal)
 
 手动记录 Word 与 Chunk，离线查找和编辑。React + Vite + TypeScript，记录保存在当前浏览器或已安装 PWA 的 IndexedDB 中。应用不需要登录、翻译 API 或云端数据库。
 
@@ -44,6 +44,8 @@ Playwright 会自动启动正式预览（或复用已在 4173 运行的预览）
 - **Entry details**：查看、编辑、收藏与确认删除。
 - **Favorites**：取消收藏仅更改星星状态，保留原记录。
 - **Settings**：导出 JSON 备份、预览并确认导入、查看离线和储存状态。
+
+GitHub 用户名变更后，正式网址已更新为 `jjunl23.github.io`。旧地址安装的 App 可能仍使用离线缓存；如有记录，先在旧 App 导出 JSON，再到新网址导入，不能假定两个网址共享资料。
 
 新安装不会自动写入示例词汇。资料只属于当前设备、浏览器资料区与网址；更换域名或浏览器不会自动迁移。
 
@@ -100,7 +102,7 @@ Remove-Item Env:BASE_PATH
 
 ## 离线与升级
 
-正式构建会预缓存 HTML、CSS、JavaScript、本地字体、图标与 Manifest。所有业务数据读写直接在 IndexedDB 中完成。应用更新使用提示式激活；保存编辑后再选择更新，避免更新强制刷新丢失输入。数据库版本与应用资源缓存独立，更新界面不会清空记录。
+正式构建会预缓存 HTML、CSS、JavaScript、图标与 Manifest。所有界面统一使用设备系统字体，iPhone 优先使用苹果系统字体，不需要下载字体文件。所有业务数据读写直接在 IndexedDB 中完成。应用更新使用提示式激活；保存编辑后再选择更新，避免更新强制刷新丢失输入。数据库版本与应用资源缓存独立，更新界面不会清空记录。
 
 需要联网完成首次缓存，才可在之后离线重启。系统仍可能回收网站储存；[WebKit 的储存政策](https://webkit.org/blog/14403/updates-to-storage-policy/)说明了持久化请求与资料清理行为。
 
