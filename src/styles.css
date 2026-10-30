@@ -1,10 +1,6 @@
 :root {
-  font-family:
-    'DM Sans',
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
+  --font-system: -apple-system, BlinkMacSystemFont, system-ui, 'PingFang SC', 'Segoe UI', sans-serif;
+  font-family: var(--font-system);
   color: #30382e;
   background: #f8f7f2;
   font-synthesis: none;
@@ -21,7 +17,6 @@
   --border: #e4e5db;
   --sage: #e9eddf;
   --rust: #b2674f;
-  --serif: 'Lora', Georgia, 'Songti SC', serif;
 }
 * {
   box-sizing: border-box;
@@ -139,7 +134,7 @@ body:has(dialog[open]) {
   letter-spacing: -0.3px;
 }
 .brand b {
-  font-family: var(--serif);
+  font-family: var(--font-system);
   font-size: 24px;
   font-weight: 500;
 }
@@ -213,7 +208,7 @@ body:has(dialog[open]) {
   margin-bottom: 12px;
 }
 .sidebar-note p {
-  font-family: var(--serif);
+  font-family: var(--font-system);
   font-size: 14px;
   line-height: 1.8;
 }
@@ -315,7 +310,7 @@ main {
   margin-bottom: 11px;
 }
 h1 {
-  font-family: var(--serif);
+  font-family: var(--font-system);
   font-weight: 400;
   letter-spacing: -1.4px;
   font-size: 39px;
@@ -569,7 +564,7 @@ h1 {
   outline-offset: -5px;
 }
 .entry-open h2 {
-  font-family: var(--serif);
+  font-family: var(--font-system);
   font-size: 23px;
   font-weight: 400;
   line-height: 1.4;
@@ -605,7 +600,7 @@ h1 {
   overflow-wrap: anywhere;
 }
 .language-code {
-  font-family: 'DM Sans', sans-serif !important;
+  font-family: var(--font-system) !important;
   font-size: 8px !important;
   letter-spacing: 0.5px;
   color: #626959;
@@ -615,7 +610,7 @@ h1 {
 .translation-missing {
   color: #65685f !important;
   font-size: 11px !important;
-  font-family: 'DM Sans', sans-serif !important;
+  font-family: var(--font-system) !important;
   font-style: italic;
 }
 .card-footer {
@@ -646,7 +641,7 @@ h1 {
   gap: 13px;
   align-items: center;
   justify-content: center;
-  font-family: var(--serif);
+  font-family: var(--font-system);
   font-style: italic;
   color: #65695c;
   font-size: 11px;
@@ -667,7 +662,7 @@ h1 {
   padding: 35px 20px 45px;
 }
 .empty-state h2 {
-  font-family: var(--serif);
+  font-family: var(--font-system);
   font-weight: 400;
   font-size: 27px;
   letter-spacing: -0.6px;
@@ -739,7 +734,7 @@ h1 {
   color: #616757;
 }
 .paper-word {
-  font-family: var(--serif);
+  font-family: var(--font-system);
   font-size: 24px;
   color: #506241;
   margin: 12px 0 10px;
@@ -854,7 +849,7 @@ h1 {
   min-height: 380px;
 }
 .error-state h2 {
-  font-family: var(--serif);
+  font-family: var(--font-system);
   font-weight: 400;
   font-size: 25px;
 }
@@ -963,7 +958,7 @@ h1 {
 .section-heading h2,
 .install-note h2 {
   font-size: 17px;
-  font-family: var(--serif);
+  font-family: var(--font-system);
   font-weight: 400;
   letter-spacing: -0.3px;
 }
@@ -1072,7 +1067,7 @@ h1 {
   gap: 7px;
 }
 .settings-signoff > span:first-of-type {
-  font-family: var(--serif);
+  font-family: var(--font-system);
   font-size: 13px;
   color: #5f6854;
 }
@@ -1109,7 +1104,7 @@ h1 {
   border-bottom: 1px solid #e6e9de;
 }
 .modal-header h2 {
-  font-family: var(--serif);
+  font-family: var(--font-system);
   font-weight: 400;
   font-size: 27px;
   letter-spacing: -0.8px;
@@ -1291,7 +1286,7 @@ h1 {
   text-align: center;
 }
 .detail-languages p {
-  font-family: var(--serif);
+  font-family: var(--font-system);
   font-size: 27px;
   font-weight: 400;
   line-height: 1.6;
@@ -1398,7 +1393,7 @@ h1 {
   gap: 9px;
 }
 .import-summary strong {
-  font-family: var(--serif);
+  font-family: var(--font-system);
   font-size: 28px;
   font-weight: 400;
   color: #5a6b45;
